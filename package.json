@@ -1,0 +1,12 @@
+{
+  "name": "renewal",
+  "version": "1.0.0",
+  "description": "Automated hosting renewal with Puppeteer",
+  "scripts": {
+    "zampto": "node zampto-renew.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "rebrowser-puppeteer": "^24.8.1"
+  }
+}
