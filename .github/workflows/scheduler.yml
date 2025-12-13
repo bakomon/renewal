@@ -15,4 +15,4 @@ jobs:
       - run: npm install @breejs/later
       - run: node scheduler.js
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # or github.token
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
