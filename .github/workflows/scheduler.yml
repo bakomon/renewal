@@ -1,0 +1,15 @@
+name: 📅 Scheduler
+on:
+  schedule:
+    - cron: '0 */6 * * *'   # run every 6 hours (UTC)
+
+jobs:
+  schedule-zampto:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: austenstone/schedule@v1.3
+        with:
+          github-token: ${{ secrets.TOKEN }}
+          workflow: 'zampto-renew.yml'
+          date: 'in 6 days 2 hours'   # run every 6 days 2 hours (146 hours)
+          timezone: 'UTC'

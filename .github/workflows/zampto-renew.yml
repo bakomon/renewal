@@ -1,8 +1,6 @@
 name: Zampto Free Hosting Renewal
 on:
-  schedule:
-    - cron: '0 0 */6 * *'  # every 6 days at midnight UTC
-  workflow_dispatch:  # manual trigger
+  workflow_dispatch:   # manual trigger, auto schedule by scheduler.yml
 
 jobs:
   renewal-zampto:
