@@ -24,8 +24,6 @@ jobs:
 
           for wf in "${files[@]}"; do
             echo "Re-enabling \"$wf\"..."
-
-            # Explicitly specify the repo to avoid relying on a local .git
             gh workflow enable "$wf"
           done
 
