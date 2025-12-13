@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Automated hosting renewal with Puppeteer",
   "scripts": {
+    "webhostmost": "node webhostmost-renew.js",
     "zampto": "node zampto-renew.js"
   },
   "dependencies": {
