@@ -17,7 +17,7 @@ for (const { workflow, rule } of config) {
     const shouldRun = Math.abs(now - next) < windowMs;
 
     if (shouldRun) {
-      console.log(`Triggering ${workflow}...`);
+      console.log(`Triggering "${workflow}"...`);
       execSync(`gh workflow run ${workflow}`, { stdio: 'inherit' });
     } else {
       console.log(`Skipping ${workflow}, not scheduled now.`);

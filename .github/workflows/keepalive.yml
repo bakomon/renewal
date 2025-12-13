@@ -12,7 +12,7 @@ jobs:
       # Cross-protection: re-enable other workflows from a list
       - name: Re-enable listed workflows
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # or github.token
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           # List of workflow files to re-enable
           files=(
@@ -20,7 +20,7 @@ jobs:
           )
 
           for wf in "${files[@]}"; do
-            echo "Re-enabling $wf..."
+            echo "Re-enabling \"$wf\"..."
             gh workflow enable "$wf"
           done
 
