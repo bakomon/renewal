@@ -26,7 +26,7 @@ jobs:
             echo "Re-enabling \"$wf\"..."
 
             # Explicitly specify the repo to avoid relying on a local .git
-            gh workflow enable --repo "$GITHUB_REPOSITORY" "$wf"
+            gh workflow enable "$wf"
           done
 
   # Self-protection: ensures keepalive.yml itself is re-enabled
