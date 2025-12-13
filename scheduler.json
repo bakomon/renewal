@@ -1,0 +1,3 @@
+[
+  { "workflow": "zampto-renew.yml", "rule": "every 5 minutes" }
+]

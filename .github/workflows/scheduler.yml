@@ -2,14 +2,17 @@ name: 📅 Scheduler
 on:
   schedule:
     - cron: '0 */6 * * *'   # run every 6 hours (UTC)
+  workflow_dispatch:   # manual trigger
 
 jobs:
-  schedule-zampto:
+  scheduler:
     runs-on: ubuntu-latest
     steps:
-      - uses: austenstone/schedule@v1.3
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
-          github-token: ${{ secrets.TOKEN }}
-          workflow: 'zampto-renew.yml'
-          date: 'in 6 days 2 hours'   # run every 6 days 2 hours (146 hours)
-          timezone: 'UTC'
+          node-version: 25
+      - run: npm install @breejs/later
+      - run: node scheduler.js
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # or github.token
