@@ -9,10 +9,13 @@ jobs:
   keepalive:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
       # Cross-protection: re-enable other workflows from a list
       - name: Re-enable listed workflows
         env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # List of workflow files to re-enable
           files=(
@@ -21,7 +24,9 @@ jobs:
 
           for wf in "${files[@]}"; do
             echo "Re-enabling \"$wf\"..."
-            gh workflow enable "$wf"
+
+            # Explicitly specify the repo to avoid relying on a local .git
+            gh workflow enable --repo "$GITHUB_REPOSITORY" "$wf"
           done
 
   # Self-protection: ensures keepalive.yml itself is re-enabled
