@@ -23,6 +23,7 @@ for (const { workflow, rule } of config) {
       console.log(`Skipping ${workflow}, not scheduled now.`);
     }
   } catch (err) {
-    console.error(`Error parsing rule for ${workflow}: ${rule}`, err);
+    console.error(`❌ Error parsing rule for ${workflow}: ${rule}`, err);
+    process.exit(1);
   }
 }
