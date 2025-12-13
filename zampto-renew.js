@@ -3,6 +3,7 @@ const puppeteer = require('rebrowser-puppeteer');
 
 (async () => {
   const isDev = process.env.NODE_ENV !== 'production';
+  console.time('⏱️ browser-runtime');
 
   console.log('Launching browser...');
   const browser = await puppeteer.launch({
@@ -68,4 +69,6 @@ const puppeteer = require('rebrowser-puppeteer');
 
   console.log("Closing browser...");
   await browser.close();
+
+  console.timeEnd('⏱️ browser-runtime');
 })();

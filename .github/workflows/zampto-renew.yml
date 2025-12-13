@@ -5,7 +5,7 @@ on:
   workflow_dispatch:  # manual trigger
 
 jobs:
-  build:
+  renewal-zampto:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
