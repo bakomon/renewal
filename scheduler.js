@@ -6,6 +6,7 @@ const fs = require('fs');
 dayjs.extend(utc);
 
 const config = [
+  { workflow: "keepalive.yml", interval: { value: 55, unit: "day" } },
   { workflow: "webhostmost-renew.yml", interval: { value: 40, unit: "day" } },
   { workflow: "zampto-renew.yml", interval: { value: 146, unit: "hour" } }
 ];

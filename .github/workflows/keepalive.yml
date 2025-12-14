@@ -1,0 +1,34 @@
+name: Keep Alive
+on:
+  workflow_dispatch:   # manual trigger, auto schedule by scheduler.yml
+
+permissions:
+  actions: write
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      # Cross-protection: re-enable other workflows from a list
+      - name: ⭐ Re-enable listed workflows
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # or github.token
+        run: |
+          # List of workflow files to re-enable
+          files=(
+            "scheduler.yml"
+          )
+
+          for wf in "${files[@]}"; do
+            echo "Re-enabling \"$wf\"..."
+            gh workflow enable "$wf"
+          done
+
+  # Self-protection: ensures keepalive.yml itself is re-enabled
+  workflow-keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: liskin/gh-workflow-keepalive@v1
