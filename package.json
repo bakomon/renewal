@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "Automated hosting renewal with Puppeteer",
   "scripts": {
-    "webhostmost": "node webhostmost-renew.js",
-    "zampto": "node zampto-renew.js"
+    "webhostmost": "node scripts/webhostmost-renew.js",
+    "zampto": "node scripts/zampto-renew.js"
   },
   "dependencies": {
     "dotenv": "^17.2.3",

@@ -2,12 +2,11 @@ require('dotenv').config();
 const puppeteer = require('rebrowser-puppeteer');
 
 (async () => {
-  const isDev = process.env.NODE_ENV !== 'production';
   console.time('⏱️ browser-runtime');
 
   console.log('Launching browser...');
   const browser = await puppeteer.launch({
-    executablePath: isDev ? process.env.CHROME_PATH : undefined,
+    executablePath: process.env.CHROME_PATH,
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
@@ -27,7 +26,7 @@ const puppeteer = require('rebrowser-puppeteer');
 
     console.log('Typing email & password...');
     await page.type('input#inputEmail', process.env.EMAIL);
-    await page.type('input[name="password"]', process.env.WEBHOSTMOST_PASSWORD);
+    await page.type('input#inputPassword', process.env.WEBHOSTMOST_PASSWORD);
 
     console.log('Submitting login form...');
     await page.click('button[type="submit"]');

@@ -2,12 +2,11 @@ require('dotenv').config();
 const puppeteer = require('rebrowser-puppeteer');
 
 (async () => {
-  const isDev = process.env.NODE_ENV !== 'production';
   console.time('⏱️ browser-runtime');
 
   console.log('Launching browser...');
   const browser = await puppeteer.launch({
-    executablePath: isDev ? process.env.CHROME_PATH : undefined,
+    executablePath: process.env.CHROME_PATH,
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });

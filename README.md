@@ -43,7 +43,7 @@ npm install
 ```
 
 > [!IMPORTANT]  
-> When using **rebrowser-puppeteer**, you need to manually install the browser binary. 
+> When using **rebrowser-puppeteer**, you need to manually install the browser binary.
 >
 > To install Chrome via rebrowser-puppeteer run:
 > ```sh
@@ -61,7 +61,7 @@ npm install
 
 - Add additional scripts in [package.json](./package.json) for other providers, for example:
   ```json
-  "provider1": "node provider1-renew.js"
+  "provider1": "node scripts/provider1-renew.js"
   ```
 
 
