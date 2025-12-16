@@ -1,0 +1,39 @@
+name: Cloudflare Turnstile Test
+on:
+  workflow_dispatch:   # manual trigger
+
+jobs:
+  turnstile-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '25'
+
+      - name: Cache node modules
+        uses: actions/cache@v5
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Check Chrome installation
+        run: |
+          which google-chrome
+          google-chrome --version
+
+      - name: ⭐ Run turnstile test (headful Chrome)
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+          DISPLAY: :99
+        run: |
+          Xvfb -ac :99 -screen 0 1920x1080x24 2>/dev/null &
+          node turnstile-test.js

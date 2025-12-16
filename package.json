@@ -4,7 +4,8 @@
   "description": "Automated hosting renewal with Puppeteer",
   "scripts": {
     "webhostmost": "node scripts/webhostmost-renew.js",
-    "zampto": "node scripts/zampto-renew.js"
+    "zampto": "node scripts/zampto-renew.js",
+    "turnstile": "node scripts/turnstile-test.js"
   },
   "dependencies": {
     "dotenv": "^17.2.3",
