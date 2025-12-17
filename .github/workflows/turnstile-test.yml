@@ -36,4 +36,4 @@ jobs:
           DISPLAY: :99
         run: |
           Xvfb -ac :99 -screen 0 1920x1080x24 2>/dev/null &
-          node turnstile-test.js
+          node scripts/turnstile-test.js

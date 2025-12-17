@@ -6,14 +6,95 @@
  * File:
  * - background.js
  * - captcha/turnstile.js
- * 
+ *
  * Similar:
  * - https://github.com/ZFC-Digital/puppeteer-real-browser/blob/510939f606df79e70688cc112e74b93eb1420a2d/lib/cjs/module/turnstile.js
  */
 
 
-// keep last known mouse positions per page
-const pageState = new WeakMap();
+async function disableMovementVisual(page) {
+    await page.evaluate(() => {
+        try {
+            if (window.__puppeteer_mouse_overlay) {
+                window.__puppeteer_mouse_overlay.remove();
+                delete window.__puppeteer_mouse_overlay;
+            }
+            if (window.__puppeteer_mouse_canvas) {
+                window.__puppeteer_mouse_canvas.remove();
+                delete window.__puppeteer_mouse_canvas;
+            }
+            if (window.__puppeteer_mouse_resize_handler) {
+                window.removeEventListener('resize', window.__puppeteer_mouse_resize_handler);
+                delete window.__puppeteer_mouse_resize_handler;
+            }
+            delete window.__puppeteer_mouse_ctx;
+        } catch (e) {
+            // ignore
+        }
+    });
+}
+
+async function updateMovementVisual(page, x, y) {
+    await page.evaluate(([x, y]) => {
+        const ov = window.__puppeteer_mouse_overlay;
+        if (ov) {
+            ov.style.left = `${x}px`;
+            ov.style.top = `${y}px`;
+        }
+        const ctx = window.__puppeteer_mouse_ctx;
+        if (ctx) {
+            ctx.fillStyle = 'rgba(255,0,0,0.6)';
+            ctx.beginPath();
+            ctx.arc(x, y, 2, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+    }, [x, y]);
+}
+
+async function enableMovementVisual(page) {
+    await page.evaluate(() => {
+        if (window.__puppeteer_mouse_overlay) return;
+        const ov = document.createElement('div');
+        ov.id = '__puppeteer_mouse_overlay';
+        ov.style.position = 'fixed';
+        ov.style.zIndex = 2147483647;
+        ov.style.pointerEvents = 'none';
+        ov.style.width = '12px';
+        ov.style.height = '12px';
+        ov.style.background = 'rgba(255,0,0,0.9)';
+        ov.style.borderRadius = '50%';
+        ov.style.transform = 'translate(-50%,-50%)';
+        ov.style.left = '0px';
+        ov.style.top = '0px';
+        document.body.appendChild(ov);
+
+        const canvas = document.createElement('canvas');
+        canvas.id = '__puppeteer_mouse_canvas';
+        canvas.style.position = 'fixed';
+        canvas.style.zIndex = 2147483646;
+        canvas.style.left = '0';
+        canvas.style.top = '0';
+        canvas.style.pointerEvents = 'none';
+        canvas.width = innerWidth;
+        canvas.height = innerHeight;
+        document.body.appendChild(canvas);
+
+        window.__puppeteer_mouse_overlay = ov;
+        window.__puppeteer_mouse_canvas = canvas;
+        window.__puppeteer_mouse_ctx = canvas.getContext('2d');
+
+        if (!window.__puppeteer_mouse_resize_handler) {
+            window.__puppeteer_mouse_resize_handler = () => {
+                const c = window.__puppeteer_mouse_canvas;
+                if (c) {
+                    c.width = innerWidth;
+                    c.height = innerHeight;
+                }
+            };
+            window.addEventListener('resize', window.__puppeteer_mouse_resize_handler);
+        }
+    });
+}
 
 /* small easing and bezier helpers ported to puppeteer environment */
 function easeCurve(e) {
@@ -39,76 +120,127 @@ async function variableSleep(progress, minMs = 2, maxMs = 32) {
     await sleep(r);
 }
 
-/* compute a plausible starting point for move: use stored last or random near target */
+/* compute a plausible starting point for move: pick a random point far from target */
 async function getStartPos(page, targetX, targetY) {
-    const state = pageState.get(page) || { positions: [] };
-    if (state.positions.length > 0) {
-        // use the last stored position
-        return state.positions[state.positions.length - 1];
-    }
-    // fallback: try to read viewport center
+    // always pick a random corner and offset from it by a random angle (degrees) + distance
     try {
         const vp = await page.evaluate(() => ({ w: innerWidth, h: innerHeight }));
-        return { x: Math.max(0, Math.min(vp.w - 1, targetX + (Math.random() - 0.5) * 200)),
-                 y: Math.max(0, Math.min(vp.h - 1, targetY + (Math.random() - 0.5) * 200)) };
-    } catch {
-        return { x: targetX + (Math.random() - 0.5) * 100, y: targetY + (Math.random() - 0.5) * 100 };
-    }
-}
+        const corners = [
+            { x: 0, y: 0 },                       // top-left
+            { x: vp.w - 1, y: 0 },                // top-right
+            { x: 0, y: vp.h - 1 },                // bottom-left
+            { x: vp.w - 1, y: vp.h - 1 },         // bottom-right
+        ];
+        const corner = corners[Math.floor(Math.random() * corners.length)];
+        // pick an angle in degrees within the 0-90° quadrant relative to the corner, convert to radians
+        const angleDeg = Math.random() * 90;
+        const angle = angleDeg * (Math.PI / 180);
+        // distance: choose a reasonable distance based on viewport diagonal
+        const diag = Math.hypot(vp.w, vp.h);
+        const minR = Math.min(80, diag * 0.05);
+        const maxR = Math.min(300, diag * 0.35);
+        const r = minR + Math.random() * (maxR - minR);
 
-/* store position history */
-function pushPosition(page, pos) {
-    let state = pageState.get(page);
-    if (!state) {
-        state = { positions: [] };
-        pageState.set(page, state);
+        // determine direction signs so angle points into the page from the chosen corner
+        const dirX = corner.x === 0 ? 1 : -1;
+        const dirY = corner.y === 0 ? 1 : -1;
+
+        let x = corner.x + Math.cos(angle) * r * dirX;
+        let y = corner.y + Math.sin(angle) * r * dirY;
+
+        // clamp to viewport
+        x = Math.max(0, Math.min(vp.w - 1, Math.round(x)));
+        y = Math.max(0, Math.min(vp.h - 1, Math.round(y)));
+        return { x, y };
+    } catch {
+        // fallback: simple corner-based offsets if evaluation fails
+        const cornerX = Math.random() < 0.5 ? 0 : 1;
+        const cornerY = Math.random() < 0.5 ? 0 : 1;
+        const angle = (Math.random() * 90) * (Math.PI / 180);
+        const r = 100 + Math.random() * 200;
+        const dirX = cornerX === 0 ? 1 : -1;
+        const dirY = cornerY === 0 ? 1 : -1;
+        return {
+            x: Math.round((cornerX === 0 ? 0 : 800) + Math.cos(angle) * r * dirX),
+            y: Math.round((cornerY === 0 ? 0 : 600) + Math.sin(angle) * r * dirY),
+        };
     }
-    state.positions.push(pos);
-    // keep reasonable history
-    if (state.positions.length > 100) state.positions = state.positions.slice(-100);
 }
 
 /*
  * moveMouseHuman - emulate mouse path before clicking
  * page: puppeteer Page
  * toX,toY: absolute coordinates in the page viewport
- * opts: { stepsCap } optional
  */
 async function moveMouseHuman(page, toX, toY, opts = {}) {
+    const show = opts.enableVisual;
+    if (show) await enableMovementVisual(page);
+
     const start = await getStartPos(page, toX, toY);
     const from = { x: start.x, y: start.y };
     // distance and steps
     const dx = toX - from.x;
     const dy = toY - from.y;
     const dist = Math.hypot(dx, dy);
-    const steps = Math.min(64, Math.max(8, Math.ceil(dist / 8)));
-    // control points heuristic similar to extension
+    const steps = Math.min(96, Math.max(12, Math.ceil(dist / 6)));
+
+    // control points heuristic similar to extension (kept)
     const cp1 = { x: from.x + dx * 0.2 + (Math.random() - 0.5) * 50, y: from.y + dy * 0.2 + (Math.random() - 0.5) * 50 };
     const cp2 = { x: from.x + dx * 0.6 + (Math.random() - 0.5) * 30, y: from.y + dy * 0.6 + (Math.random() - 0.5) * 30 };
-    // iterate points and move
+
+    // helper: cubic bezier derivative (tangent)
+    function cubicBezierTangent(p0, p1, p2, p3, t) {
+        const u = 1 - t;
+        return {
+            x: 3 * (Math.pow(u, 2) * (p1.x - p0.x) + 2 * u * t * (p2.x - p1.x) + Math.pow(t, 2) * (p3.x - p2.x)),
+            y: 3 * (Math.pow(u, 2) * (p1.y - p0.y) + 2 * u * t * (p2.y - p1.y) + Math.pow(t, 2) * (p3.y - p2.y)),
+        };
+    }
+
+    // winding oscillation parameters (randomized per move)
+    const maxAmp = Math.min(60, Math.max(12, dist * 0.04)); // max perpendicular amplitude
+    const freq = 1 + Math.random() * 2.2;                    // number of oscillation cycles along path
+    const phase = Math.random() * Math.PI * 2;
+
+    // iterate points and move, add perpendicular sinusoidal offset to create winding curve
     for (let i = 1; i <= steps; i++) {
         const t = i / steps;
         const z = easeCurve(t);
         const p = cubicBezier(from, cp1, cp2, { x: toX, y: toY }, z);
-        // apply tiny random jitter to intermediate steps (not final)
+
+        // compute tangent and perpendicular unit vector
+        const tan = cubicBezierTangent(from, cp1, cp2, { x: toX, y: toY }, z);
+        const len = Math.hypot(tan.x, tan.y) || 1;
+        const ux = tan.x / len;
+        const uy = tan.y / len;
+        // perpendicular (rotated 90deg)
+        const px = -uy;
+        const py = ux;
+
+        // amplitude taper: stronger in middle, zero at ends
+        const taper = Math.sin(Math.PI * t); // 0 at ends, 1 in middle
+        const oscillation = Math.sin(2 * Math.PI * freq * t + phase);
+        const offsetAmt = maxAmp * taper * oscillation;
+
+        // apply winding offset (smaller jitter for final step)
         if (i !== steps) {
-            p.x += (Math.random() - 0.5) * 2;
-            p.y += (Math.random() - 0.5) * 2;
+            p.x += px * offsetAmt + (Math.random() - 0.5) * 3;
+            p.y += py * offsetAmt + (Math.random() - 0.5) * 3;
         } else {
             // final point snap to exact target
             p.x = toX;
             p.y = toY;
         }
+
         try {
             // use puppeteer mouse.move with single step for exactness
             await page.mouse.move(Math.round(p.x), Math.round(p.y));
         } catch {}
-        await variableSleep(z, 2, 32);
-        // occasionally store intermediate points for future start positions
-        if (Math.random() > 0.9) pushPosition(page, { x: p.x, y: p.y });
+        if (show) await updateMovementVisual(page, p.x, p.y);
+        await variableSleep(z, 4, 36);
     }
-    // ensure final stored position
-    pushPosition(page, { x: toX, y: toY });
+
+    if (show && opts.disableVisual) await disableMovementVisual(page);
 }
 
 function sleep(ms) {
@@ -173,7 +305,7 @@ async function locateTurnstileFrame(page) {
     return null;
 }
 
-async function isTurnstileSolved(page) {
+async function isTurnstileSolved(page, challenge = false) {
     // check for token field first
     try {
         const val = await page.$eval('input[name="cf-turnstile-response"]', el => el.value || '');
@@ -181,9 +313,24 @@ async function isTurnstileSolved(page) {
     } catch (e) {
         // ignore if element not present
     }
-    // fallback: if turnstile frame is gone, consider it solved/cleared
-    const frame = await locateTurnstileFrame(page);
-    return frame === null;
+
+    if (challenge) {
+        // For challenge pages, check in this order:
+        // 1) frame is gone
+        // 2) .lds-ring visible
+  
+        try {
+            await page.waitForSelector('.lds-ring', { visible: true, timeout: 2000 });
+            return true;
+        } catch (e) {
+            // not present
+        }
+
+        const frame = await locateTurnstileFrame(page);
+        return frame === null;
+    }
+
+    return false;
 }
 
 const DEFAULT_SETTINGS = {
@@ -206,7 +353,10 @@ async function solve(page, settings = {}) {
     try {
         await sleep(1000); // wait = 1s
 
-        for (let attempt = 0; attempt < 3; attempt++) {
+        const maxAttempts = 3;
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            // console.log(`Turnstile solve attempt: ${attempt + 1}/${maxAttempts}`);
+
             if (settings.turnstile_solve_delay && settings.turnstile_solve_delay_time > 0) {
                 await sleep(settings.turnstile_solve_delay_time);
             }
@@ -217,6 +367,7 @@ async function solve(page, settings = {}) {
             if (frameBox === null) {
                 // no visible frame found, wait and retry
                 await sleep(2500);
+                console.log(`⚠️ Turnstile frame not found, retrying...`);
                 continue;
             }
 
@@ -233,20 +384,31 @@ async function solve(page, settings = {}) {
             const clickY = Math.floor(frameY + Math.floor(frameH / 2) + jitter.y);
 
             // move mouse with human-like path before clicking
-            await moveMouseHuman(page, clickX, clickY);
+            await moveMouseHuman(page, clickX, clickY, { enableVisual: true, disableVisual: true });
 
             // clickAbs: left click with small human-like delay
             const delay = Math.floor(30 + Math.random() * 30);
             await page.mouse.click(clickX, clickY, { button: 'left', delay });
 
-            await sleep(5000);
+            // repeatedly check for solved state
+            const CHECK_TIMEOUT = 5000;
+            const CHECK_INTERVAL = 250;
+            const start = Date.now();
+            let solved = false;
+            while (Date.now() - start < CHECK_TIMEOUT) {
+                if (await isTurnstileSolved(page, settings.challenge_page)) {
+                    solved = true;
+                    break;
+                }
+                await sleep(CHECK_INTERVAL);
+            }
 
-            // if solved (token present and long enough) or frame gone, stop attempts
-            if (await isTurnstileSolved(page)) {
+            // if solved, stop attempts
+            if (solved) {
                 break;
             }
 
-            console.log(`Turnstile solve attempt ${attempt + 1} failed, retrying...`);
+            console.log(`⚠️ Turnstile solve attempt ${attempt + 1} failed, retrying...`);
         }
     } finally {
         isSolving = false;
@@ -258,4 +420,6 @@ module.exports = {
     sleep,
     locateTurnstileFrame,
     moveMouseHuman,
+    enableMovementVisual,
+    disableMovementVisual,
 };
