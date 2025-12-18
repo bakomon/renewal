@@ -12,89 +12,12 @@
  */
 
 
-async function disableMovementVisual(page) {
-    await page.evaluate(() => {
-        try {
-            if (window.__puppeteer_mouse_overlay) {
-                window.__puppeteer_mouse_overlay.remove();
-                delete window.__puppeteer_mouse_overlay;
-            }
-            if (window.__puppeteer_mouse_canvas) {
-                window.__puppeteer_mouse_canvas.remove();
-                delete window.__puppeteer_mouse_canvas;
-            }
-            if (window.__puppeteer_mouse_resize_handler) {
-                window.removeEventListener('resize', window.__puppeteer_mouse_resize_handler);
-                delete window.__puppeteer_mouse_resize_handler;
-            }
-            delete window.__puppeteer_mouse_ctx;
-        } catch (e) {
-            // ignore
-        }
-    });
-}
-
-async function updateMovementVisual(page, x, y) {
-    await page.evaluate(([x, y]) => {
-        const ov = window.__puppeteer_mouse_overlay;
-        if (ov) {
-            ov.style.left = `${x}px`;
-            ov.style.top = `${y}px`;
-        }
-        const ctx = window.__puppeteer_mouse_ctx;
-        if (ctx) {
-            ctx.fillStyle = 'rgba(255,0,0,0.6)';
-            ctx.beginPath();
-            ctx.arc(x, y, 2, 0, 2 * Math.PI);
-            ctx.fill();
-        }
-    }, [x, y]);
-}
-
-async function enableMovementVisual(page) {
-    await page.evaluate(() => {
-        if (window.__puppeteer_mouse_overlay) return;
-        const ov = document.createElement('div');
-        ov.id = '__puppeteer_mouse_overlay';
-        ov.style.position = 'fixed';
-        ov.style.zIndex = 2147483647;
-        ov.style.pointerEvents = 'none';
-        ov.style.width = '12px';
-        ov.style.height = '12px';
-        ov.style.background = 'rgba(255,0,0,0.9)';
-        ov.style.borderRadius = '50%';
-        ov.style.transform = 'translate(-50%,-50%)';
-        ov.style.left = '0px';
-        ov.style.top = '0px';
-        document.body.appendChild(ov);
-
-        const canvas = document.createElement('canvas');
-        canvas.id = '__puppeteer_mouse_canvas';
-        canvas.style.position = 'fixed';
-        canvas.style.zIndex = 2147483646;
-        canvas.style.left = '0';
-        canvas.style.top = '0';
-        canvas.style.pointerEvents = 'none';
-        canvas.width = innerWidth;
-        canvas.height = innerHeight;
-        document.body.appendChild(canvas);
-
-        window.__puppeteer_mouse_overlay = ov;
-        window.__puppeteer_mouse_canvas = canvas;
-        window.__puppeteer_mouse_ctx = canvas.getContext('2d');
-
-        if (!window.__puppeteer_mouse_resize_handler) {
-            window.__puppeteer_mouse_resize_handler = () => {
-                const c = window.__puppeteer_mouse_canvas;
-                if (c) {
-                    c.width = innerWidth;
-                    c.height = innerHeight;
-                }
-            };
-            window.addEventListener('resize', window.__puppeteer_mouse_resize_handler);
-        }
-    });
-}
+const {
+    disablePointerVisual,
+    enableMovementVisual,
+    updateMovementVisual,
+    showClickVisual
+} = require('./mouseVisual');
 
 /* small easing and bezier helpers ported to puppeteer environment */
 function easeCurve(e) {
@@ -173,8 +96,8 @@ async function getStartPos(page, targetX, targetY) {
  * toX,toY: absolute coordinates in the page viewport
  */
 async function moveMouseHuman(page, toX, toY, opts = {}) {
-    const show = opts.enableVisual;
-    if (show) await enableMovementVisual(page);
+    const visual = opts.enableVisual;
+    if (visual) await enableMovementVisual(page);
 
     const start = await getStartPos(page, toX, toY);
     const from = { x: start.x, y: start.y };
@@ -236,11 +159,11 @@ async function moveMouseHuman(page, toX, toY, opts = {}) {
             // use puppeteer mouse.move with single step for exactness
             await page.mouse.move(Math.round(p.x), Math.round(p.y));
         } catch {}
-        if (show) await updateMovementVisual(page, p.x, p.y);
+        if (visual) await updateMovementVisual(page, p.x, p.y);
         await variableSleep(z, 4, 36);
     }
 
-    if (show && opts.disableVisual) await disableMovementVisual(page);
+    if (visual) await disablePointerVisual(page);
 }
 
 function sleep(ms) {
@@ -318,7 +241,7 @@ async function isTurnstileSolved(page, challenge = false) {
         // For challenge pages, check in this order:
         // 1) frame is gone
         // 2) .lds-ring visible
-  
+
         try {
             await page.waitForSelector('.lds-ring', { visible: true, timeout: 2000 });
             return true;
@@ -374,8 +297,10 @@ async function solve(page, settings = {}) {
             // destructure with clear names
             const { x: frameX, y: frameY, w: frameW, h: frameH } = frameBox;
 
-            // constants describing hit area inside the frame (kept from original)
-            const BUTTON_X_OFFSET = 16;
+            // constants describing hit area inside the frame
+            const LEFT_OFFSET = Math.floor(frameW * 0.054); // 5.4% of frame width (checkbox parent margin left)
+            const RIGHT_OFFSET = Math.floor(frameW * 0.404) + LEFT_OFFSET; // 40.4% of frame width (branding width + space-between width)
+            const BUTTON_X_OFFSET = LEFT_OFFSET + Math.floor(Math.random() * (frameW - LEFT_OFFSET - RIGHT_OFFSET + 1));
             const PAD = 30;
             const GAP = 4;
 
@@ -384,7 +309,9 @@ async function solve(page, settings = {}) {
             const clickY = Math.floor(frameY + Math.floor(frameH / 2) + jitter.y);
 
             // move mouse with human-like path before clicking
-            await moveMouseHuman(page, clickX, clickY, { enableVisual: true, disableVisual: true });
+            await moveMouseHuman(page, clickX, clickY, { enableVisual: true });
+
+            await showClickVisual(page, clickX, clickY);
 
             // clickAbs: left click with small human-like delay
             const delay = Math.floor(30 + Math.random() * 30);
@@ -419,7 +346,5 @@ module.exports = {
     solve,
     sleep,
     locateTurnstileFrame,
-    moveMouseHuman,
-    enableMovementVisual,
-    disableMovementVisual,
+    moveMouseHuman
 };

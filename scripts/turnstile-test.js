@@ -1,30 +1,7 @@
 require('dotenv').config();
 const puppeteer = require('rebrowser-puppeteer');
-const { solve, sleep } = require('../helpers/turnstile');
-
-async function checkCloudflareChallenge(page, response) {
-  // Try headers first (fast)
-  try {
-    if (response && typeof response.headers === 'function') {
-      const headers = response.headers();
-      if (headers && headers['cf-mitigated'] === 'challenge') {
-        return { detected: true, reason: 'header' };
-      }
-    }
-  } catch (e) {
-    // ignore
-  }
-
-  // Check window._cf_chl_opt
-  try {
-    const hasCfOpt = await page.evaluate(() => !!window._cf_chl_opt).catch(() => false);
-    if (hasCfOpt) return { detected: true, reason: 'window._cf_chl_opt' };
-  } catch (e) {
-    // ignore
-  }
-
-  return { detected: false };
-}
+const { sleep } = require('../helpers/turnstile');
+const { solveChallenge } = require('../helpers/cf-challenge');
 
 (async () => {
   console.time('⏱️ browser-runtime');
@@ -63,40 +40,17 @@ async function checkCloudflareChallenge(page, response) {
      */
 
     const testUrl = 'https://nopecha.com/demo/cloudflare';
+    // const testUrl = 'https://2captcha.com/demo/cloudflare-turnstile-challenge';
     // const testUrl = 'https://www.scrapingcourse.com/cloudflare-challenge';
     // const testUrl = 'https://sergiodemo.com/security/challenge/legacy-challenge';
 
     console.log(`Navigating to test page "${testUrl}" ...`);
-    let response = await page.goto(testUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    const response = await page.goto(testUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
-    // If a Cloudflare challenge appears while verifying, re-solve it
-    let isChallenge = await checkCloudflareChallenge(page, response).catch(() => ({ detected: false }));
-    if (isChallenge.detected) {
-      const maxAttempts = 3;
-      let attempt = 0;
-      while (attempt <= maxAttempts && isChallenge.detected) {
-        if (attempt > 0) {
-          console.log(`⚠️ Challenge page detected during verify (${isChallenge.reason}), re-solving (attempt ${attempt}/${maxAttempts})...`);
-          await sleep(5000);
-        }
-
-        [ response ] = await Promise.all([
-          page.waitForNavigation({ waitUntil: 'domcontentloaded' }).catch(() => null),
-          solve(page, { challenge_page: true })
-        ]);
-
-        isChallenge = await checkCloudflareChallenge(page, response).catch(() => ({ detected: false }));
-        attempt++;
-      }
-
-      if (isChallenge.detected) {
-        try {
-          await page.waitForSelector('#challenge-success-text', { visible: true, timeout: 10000 });
-        } catch (e) {
-          console.log(`❌ Reached max solve attempts (${maxAttempts}), but challenge still detected.`);
-        }
-      }
-    }
+    // If a Cloudflare challenge appears while verifying, solve it
+    const attempt = 3;
+    const { detected: isChallenge } = await solveChallenge(page, response, attempt);
+    if (isChallenge) console.log(`Cloudflare challenge still detected during verify after ${attempt} attempts`);
 
     console.log('Verifying result...');
     let startDate = Date.now();
