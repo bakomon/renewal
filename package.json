@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Automated hosting renewal with Puppeteer",
   "scripts": {
+    "hidencloud": "node scripts/hidencloud-renew.js",
     "webhostmost": "node scripts/webhostmost-renew.js",
     "zampto": "node scripts/zampto-renew.js",
     "turnstile": "node scripts/turnstile-test.js"
