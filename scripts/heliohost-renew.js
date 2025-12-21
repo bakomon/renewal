@@ -8,7 +8,8 @@ const puppeteer = require('rebrowser-puppeteer');
   const browser = await puppeteer.launch({
     executablePath: process.env.CHROME_PATH,
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    defaultViewport: null
   });
 
   const [ page ] = await browser.pages();

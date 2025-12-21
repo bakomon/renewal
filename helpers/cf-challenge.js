@@ -40,7 +40,7 @@ async function solveChallenge(page, response, maxAttempts = 3) {
       page.waitForNavigation({ waitUntil: 'domcontentloaded' }).catch(() => null),
       solve(page, { challenge_page: true })
     ]);
-    
+
     await sleep(5000);
     isChallenge = await checkChallenge(page, response).catch(() => ({ detected: false }));
     attempt++;

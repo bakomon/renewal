@@ -30,7 +30,7 @@ jobs:
           EMAIL: ${{ secrets.EMAIL }}
           HIDENCLOUD_PASSWORD: ${{ secrets.HIDENCLOUD_PASSWORD }}
           HIDENCLOUD_SERVER: ${{ secrets.HIDENCLOUD_SERVER }}
-          CHROME_PATH: /usr/bin/google-chrome   # built-in Chrome in GitHub Actions runner
+          CHROME_PATH: /usr/bin/google-chrome   # pre-installed Chrome in GitHub Actions runner
           DISPLAY: :99
         run: |
           Xvfb -ac :99 -screen 0 1920x1080x24 2>/dev/null &
