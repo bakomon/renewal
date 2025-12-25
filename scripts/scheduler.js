@@ -9,7 +9,7 @@ const config = [
   { workflow: "keepalive.yml", interval: { value: 55, unit: "day" } },
   { workflow: "heliohost-renew.yml", interval: { value: 25, unit: "day" } },
   { workflow: "webhostmost-renew.yml", interval: { value: 40, unit: "day" } },
-  { workflow: "zampto-renew.yml", interval: { value: 146, unit: "hour" } }
+  { workflow: "zampto-renew.yml", interval: { value: 26, unit: "hour" } }
 ];
 
 const GH_REPO = process.env.GH_REPO;
