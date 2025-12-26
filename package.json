@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Automated hosting renewal with Puppeteer",
   "scripts": {
+    "alwaysdata": "node scripts/alwaysdata-renew.js",
     "heliohost": "node scripts/heliohost-renew.js",
     "webhostmost": "node scripts/webhostmost-renew.js",
     "zampto": "node scripts/zampto-renew.js",

@@ -6,10 +6,13 @@ const fs = require('fs');
 dayjs.extend(utc);
 
 const config = [
+  // https://day.js.org/docs/en/display/difference#list-of-all-available-units
   { workflow: "keepalive.yml", interval: { value: 55, unit: "day" } },
+  { workflow: "alwaysdata-renew.yml", interval: { value: 85, unit: "day" } },
   { workflow: "heliohost-renew.yml", interval: { value: 25, unit: "day" } },
   { workflow: "webhostmost-renew.yml", interval: { value: 40, unit: "day" } },
   { workflow: "zampto-renew.yml", interval: { value: 26, unit: "hour" } }
+  // netsons.com - every year, expiration: 03/08/2026
 ];
 
 const GH_REPO = process.env.GH_REPO;
