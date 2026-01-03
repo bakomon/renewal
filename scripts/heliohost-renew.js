@@ -35,7 +35,7 @@ const puppeteer = require('rebrowser-puppeteer');
       await page.click('#login_form input[type="submit"]')
     ]);
 
-    // 3. Check if redirected back to dashboard
+    // 3. Check if redirected back to dashboard page
     if (page.url().startsWith(dashboard)) {
       console.log('Successfully redirected to dashboard page.');
 

@@ -35,7 +35,7 @@ const puppeteer = require('rebrowser-puppeteer');
       await page.click('button[type="submit"]')
     ]);
     
-    // 3. Check if redirected back to dashboard
+    // 3. Check if redirected back to administration page
     if (page.url().startsWith(clientArea)) {
       console.log('Successfully redirected to administration page.');
 
