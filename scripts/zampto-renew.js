@@ -33,12 +33,14 @@ const puppeteer = require('rebrowser-puppeteer');
     await page.waitForSelector('input[name="password"]', { visible: true });
     console.log('Typing password...');
     await page.type('input[name="password"]', process.env.ZAMPTO_PASSWORD);
-    console.log('Submitting password...');
-    await page.click('button[type="submit"]');
 
-    // 3. Wait for redirect back to renewal page
-    console.log('Waiting for navigation back to renewal page...');
-    await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 60000 });
+    console.log('Submitting login form & waiting for navigation back to renewal page...');
+    await Promise.all([
+      page.waitForNavigation({ waitUntil: 'domcontentloaded' }).catch(() => null),
+      await page.click('button[type="submit"]')
+    ]);
+    
+    // 3. Check if redirected back to renewal page
     if (page.url().startsWith(renewUrl)) {
       console.log('Successfully redirected to renewal page.');
 
