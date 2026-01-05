@@ -1,0 +1,33 @@
+name: SprintHost Free Hosting Renewal
+on:
+  workflow_dispatch:  # manual trigger, auto schedule by scheduler.yml
+
+jobs:
+  renewal-sprinthost:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '25'
+
+      - name: Cache node modules
+        uses: actions/cache@v5
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: ⭐ Run renewal script
+        env:
+          EMAIL: ${{ secrets.EMAIL }}
+          SPRINTHOST_PASSWORD: ${{ secrets.SPRINTHOST_PASSWORD }}
+          CHROME_PATH: /usr/bin/google-chrome   # pre-installed Chrome in GitHub Actions runner
+        run: npm run sprinthost
