@@ -37,7 +37,7 @@ const puppeteer = require('rebrowser-puppeteer');
     console.log('Submitting login form & waiting for navigation back to renewal page...');
     await Promise.all([
       page.waitForNavigation({ waitUntil: 'domcontentloaded' }).catch(() => null),
-      await page.click('button[type="submit"]')
+      page.click('button[type="submit"]')
     ]);
     
     // 3. Check if redirected back to renewal page

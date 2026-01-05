@@ -32,14 +32,14 @@ const puppeteer = require('rebrowser-puppeteer');
     console.log('Submitting login form & waiting for navigation back to administration page...');
     await Promise.all([
       page.waitForNavigation({ waitUntil: 'domcontentloaded' }).catch(() => null),
-      await page.click('button[type="submit"]')
+      page.click('button[type="submit"]')
     ]);
     
     // 3. Check if redirected back to administration page
     if (page.url().startsWith(clientArea)) {
       console.log('Successfully redirected to administration page.');
 
-      // 4. Check #custom-timer element which contains "Time until suspension" text
+      // 4. Check for logout button to confirm login
       console.log('Checking "logout" button to verify login status...');
       await page.waitForSelector('.user-menu a[href*="/logout/"]');
       console.log('✔️ Login verified successfully.');
