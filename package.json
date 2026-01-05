@@ -7,7 +7,6 @@
     "heliohost": "node scripts/heliohost-renew.js",
     "sprinthost": "node scripts/sprinthost-renew.js",
     "webhostmost": "node scripts/webhostmost-renew.js",
-    "zampto": "node scripts/zampto-renew.js",
     "turnstile": "node scripts/turnstile-test.js"
   },
   "dependencies": {
