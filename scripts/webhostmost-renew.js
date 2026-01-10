@@ -29,12 +29,13 @@ const puppeteer = require('rebrowser-puppeteer');
     await page.type('input#inputEmail', process.env.EMAIL);
     await page.type('input#inputPassword', process.env.WEBHOSTMOST_PASSWORD);
 
-    console.log('Submitting login form...');
-    await page.click('button[type="submit"]');
-
-    // 3. Wait for redirect back to client area page
-    console.log('Waiting for navigation back to client area page...');
-    await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 60000 });
+    console.log('Submitting login form & waiting for navigation back to client area page...');
+    await Promise.all([
+      page.waitForNavigation({ waitUntil: 'domcontentloaded' }).catch(() => null),
+      page.click('button[type="submit"]')
+    ]);
+    
+    // 3. Check if redirected back to client area page
     if (page.url().startsWith(clientArea)) {
       console.log('Successfully redirected to client area page.');
 
