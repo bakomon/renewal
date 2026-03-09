@@ -17,17 +17,20 @@ const puppeteer = require('rebrowser-puppeteer');
   try {
     // 1. Go to dashboard page
     console.log('Navigating to dashboard page...');
-    const dashboard = 'https://heliohost.org/dashboard/';
-    await page.goto(dashboard, { waitUntil: 'load', timeout: 60000 });
+    const dashUrl = 'https://heliohost.org/dashboard/';
+    await page.goto(dashUrl, { waitUntil: 'load', timeout: 60000 });
+
+    const identifier = '#login_form input[name="email"]';
+    const password = '#login_form input[name="password"]';
 
     // 2. It will redirect to login page if not logged in, so perform login
     console.log('Waiting for login input...');
-    await page.waitForSelector('#login_form input[name="email"]', { visible: true });
-    await page.waitForSelector('#login_form input[name="password"]', { visible: true });
+    await page.waitForSelector(identifier, { visible: true });
+    await page.waitForSelector(password, { visible: true });
 
     console.log('Typing email & password...');
-    await page.type('#login_form input[name="email"]', process.env.EMAIL);
-    await page.type('#login_form input[name="password"]', process.env.HELIOHOST_PASSWORD);
+    await page.type(identifier, process.env.EMAIL);
+    await page.type(password, process.env.HELIOHOST_PASSWORD);
 
     console.log('Submitting login form & waiting for navigation back to dashboard page...');
     await Promise.all([
@@ -36,7 +39,7 @@ const puppeteer = require('rebrowser-puppeteer');
     ]);
 
     // 3. Check if redirected back to dashboard page
-    if (page.url().startsWith(dashboard)) {
+    if (page.url().startsWith(dashUrl)) {
       console.log('Successfully redirected to dashboard page.');
 
       // 4. Check for logout button to confirm login
@@ -51,7 +54,7 @@ const puppeteer = require('rebrowser-puppeteer');
     process.exitCode = 1; // mark CI job as failed
   }
 
-  console.log("Closing browser...");
+  console.log('Closing browser...');
   await browser.close();
 
   console.timeEnd('⏱️ browser-runtime');

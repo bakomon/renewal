@@ -20,21 +20,24 @@ const puppeteer = require('rebrowser-puppeteer');
     const clientArea = 'https://client.webhostmost.com/clientarea.php';
     await page.goto(clientArea, { waitUntil: 'load', timeout: 60000 });
 
+    const identifier = '.login-form input[name="username"]';
+    const password = '.login-form input[name="password"]';
+
     // 2. It will redirect to login page if not logged in, so perform login
     console.log('Waiting for login input...');
-    await page.waitForSelector('input#inputEmail', { visible: true });
-    await page.waitForSelector('input#inputPassword', { visible: true });
+    await page.waitForSelector(identifier, { visible: true });
+    await page.waitForSelector(password, { visible: true });
 
     console.log('Typing email & password...');
-    await page.type('input#inputEmail', process.env.EMAIL);
-    await page.type('input#inputPassword', process.env.WEBHOSTMOST_PASSWORD);
+    await page.type(identifier, process.env.EMAIL);
+    await page.type(password, process.env.WEBHOSTMOST_PASSWORD);
 
     console.log('Submitting login form & waiting for navigation back to client area page...');
     await Promise.all([
       page.waitForNavigation({ waitUntil: 'domcontentloaded' }).catch(() => null),
-      page.click('button[type="submit"]')
+      page.click('.login-form button[type="submit"]')
     ]);
-    
+
     // 3. Check if redirected back to client area page
     if (page.url().startsWith(clientArea)) {
       console.log('Successfully redirected to client area page.');
@@ -55,7 +58,7 @@ const puppeteer = require('rebrowser-puppeteer');
     process.exitCode = 1; // mark CI job as failed
   }
 
-  console.log("Closing browser...");
+  console.log('Closing browser...');
   await browser.close();
 
   console.timeEnd('⏱️ browser-runtime');

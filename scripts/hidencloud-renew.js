@@ -38,21 +38,25 @@ const { solveChallenge } = require('../helpers/cf-challenge');
     console.log('Solving turnstile captcha...');
     await solve(page);
 
+    const identifier = 'form[action*="/auth/login"] input#username';
+    const password = 'form[action*="/auth/login"] input#password';
+
     // 2. It will redirect to login page if not logged in, so perform login
     console.log('Waiting for login input...');
-    await page.waitForSelector('input#username', { visible: true });
-    await page.waitForSelector('input#password', { visible: true });
+    await page.waitForSelector(identifier, { visible: true });
+    await page.waitForSelector(password, { visible: true });
 
     console.log('Typing email & password...');
-    await page.type('input#username', process.env.EMAIL);
-    await page.type('input#password', process.env.HIDENCLOUD_PASSWORD);
+    await page.type(identifier, process.env.EMAIL);
+    await page.type(password, process.env.HIDENCLOUD_PASSWORD);
 
     console.log('Submitting login form...');
-    await page.click('button[type="submit"]');
+    await page.click('form[action*="/auth/login"] button[type="submit"]');
 
     // 3. Wait for redirect back to management page
     console.log('Waiting for navigation back to management page...');
     await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 60000 });
+
     if (page.url().startsWith(manageUrl)) {
       console.log('Successfully redirected to management page.');
 
